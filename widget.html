@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>도쿄 날씨·엔화 환율</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:transparent;color:#fff;font-family:Pretendard,"Noto Sans KR",Arial,sans-serif}body{padding:0}.widget{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%;padding:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:20px}.item{min-width:0;text-align:center;color:#fff;text-decoration:none;background:rgba(255,255,255,.12);border-radius:14px;padding:11px 4px 10px}.item:hover,.item:focus{background:rgba(255,255,255,.2)}.label{display:block;font-size:13px;line-height:1.25;opacity:.85}.main{display:block;margin-top:3px;font-size:17px;line-height:1.3;font-weight:800;word-break:keep-all}.sub{display:block;margin-top:2px;font-size:11px;line-height:1.3;opacity:.75;white-space:normal}.loading{opacity:.8}@media(max-width:480px){.widget{gap:6px;padding:8px}.item{padding:10px 2px 9px}.label{font-size:11px}.main{font-size:14px}.sub{font-size:10px}}
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="item">
+    <span class="label">시차</span>
+    <b class="main">한국과 같음</b>
+    <small class="sub">도쿄 · 서울 동일</small>
+  </div>
+  <a class="item" href="https://www.google.com/search?q=%EB%8F%84%EC%BF%84+%EB%82%A0%EC%94%A8" target="_blank" rel="noopener">
+    <span class="label">도쿄 날씨</span>
+    <b class="main loading" id="wx">확인 중…</b>
+    <small class="sub" id="wxSub">실시간 정보</small>
+  </a>
+  <a class="item" href="https://www.kebhana.com/exchange_rate/excRate.do?subMenu=1" target="_blank" rel="noopener">
+    <span class="label">엔화 환율</span>
+    <b class="main loading" id="fx">확인 중…</b>
+    <small class="sub" id="fxSub">100엔 기준</small>
+  </a>
+</div>
+<script>
+(function(){
+  var WX={0:'맑음',1:'대체로 맑음',2:'구름 조금',3:'흐림',45:'안개',48:'안개',51:'이슬비',53:'이슬비',55:'이슬비',61:'비',63:'비',65:'강한 비',71:'눈',73:'눈',75:'눈',80:'소나기',81:'소나기',82:'강한 소나기',95:'뇌우',96:'뇌우',99:'뇌우'};
+  function el(id){return document.getElementById(id)}
+  function ready(node){node.classList.remove('loading')}
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=35.6917&longitude=139.7331&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&forecast_days=1')
+    .then(function(r){if(!r.ok)throw 0;return r.json()})
+    .then(function(d){
+      el('wx').textContent=Math.round(d.current.temperature_2m)+'℃ '+(WX[d.current.weather_code]||'');
+      el('wxSub').textContent='최저 '+Math.round(d.daily.temperature_2m_min[0])+'° · 최고 '+Math.round(d.daily.temperature_2m_max[0])+'°';
+      ready(el('wx'));
+    })
+    .catch(function(){el('wx').textContent='날씨 보기';el('wxSub').textContent='눌러서 확인';ready(el('wx'))});
+  function stamp(){var d=new Date();return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+  function setFx(v){el('fx').textContent='100엔 '+Math.round(v*100).toLocaleString('ko-KR')+'원';el('fxSub').textContent=stamp()+' 기준';ready(el('fx'))}
+  fetch('https://open.er-api.com/v6/latest/JPY')
+    .then(function(r){if(!r.ok)throw 0;return r.json()})
+    .then(function(d){if(!d.rates||!d.rates.KRW)throw 0;setFx(d.rates.KRW)})
+    .catch(function(){
+      fetch('https://api.frankfurter.app/latest?from=JPY&to=KRW')
+        .then(function(r){if(!r.ok)throw 0;return r.json()})
+        .then(function(d){setFx(d.rates.KRW)})
+        .catch(function(){el('fx').textContent='환율 보기';el('fxSub').textContent='눌러서 확인';ready(el('fx'))});
+    });
+})();
+</script>
+</body>
+</html>
